@@ -1,8 +1,6 @@
 """
-Dashboard Call Center Pro - Versión Final para Producción
-Con métricas: 2-5min, >5min, >10min
-Roles: Admin y Supervisor
-Campañas: Energía y Telefonía
+Dashboard Call Center Pro - Versión Definitiva
+Con: Botones visibles, frases rotativas cada 5s, interfaz mejorada
 """
 
 import streamlit as st
@@ -16,13 +14,15 @@ from datetime import datetime, timedelta
 import re
 from functools import lru_cache
 import io
+import random
+import time
 
 # ============================================================================
 # CONFIGURACIÓN INICIAL
 # ============================================================================
 
 st.set_page_config(
-    page_title="Call Center Analytics Pro",
+    page_title="Analis de la Gestion",
     page_icon="🎯",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -35,14 +35,16 @@ CAMPANAS = {
         "color": "#f97316",
         "gradient": "linear-gradient(135deg, #f97316, #ea580c)",
         "csv_path": "REPORTE_ENERGIA.csv",
-        "description": "Campaña de Energía - Ventas de servicios eléctricos"
+        "description": "Campaña de Energía - Ventas de servicios eléctricos",
+        "bg_color": "rgba(249,115,22,0.1)"
     },
     "Telefonía": {
         "icon": "📱",
         "color": "#3b82f6",
         "gradient": "linear-gradient(135deg, #3b82f6, #2563eb)",
         "csv_path": "REPORTE_TELEFONIA.csv",
-        "description": "Campaña de Telefonía - Planes móviles y fibra óptica"
+        "description": "Campaña de Telefonía - Planes móviles y fibra óptica",
+        "bg_color": "rgba(59,130,246,0.1)"
     }
 }
 
@@ -75,7 +77,54 @@ REFRESH_OPTIONS = {
     "Manual (solo Admin)": 0
 }
 
-# CSS Profesional
+# Frases motivacionales (rotan cada 5 segundos)
+FRASES = [
+    "🌟 El éxito es la suma de pequeños esfuerzos repetidos día tras día.",
+    "📞 Cada llamada es una oportunidad para crear un cliente feliz.",
+    "🎯 La calidad no es un acto, es un hábito.",
+    "💪 Los grandes equipos están hechos de personas que nunca se rinden.",
+    "⭐ La excelencia no es un destino, es un viaje continuo.",
+    "🔊 Escucha más de lo que hablas y ganarás más de lo que imaginas.",
+    "🚀 El cielo no es el límite cuando hay huellas en la luna.",
+    "🏆 El profesionalismo se demuestra en cada llamada.",
+    "💎 La perseverancia vence lo que la alegría no puede.",
+    "🎧 Un cliente satisfecho es la mejor publicidad."
+]
+
+# JavaScript para rotar frases cada 5 segundos
+ROTATE_FRASES_JS = """
+<script>
+function rotatePhrase() {
+    const frases = [
+        "🌟 El éxito es la suma de pequeños esfuerzos repetidos día tras día.",
+        "📞 Cada llamada es una oportunidad para crear un cliente feliz.",
+        "🎯 La calidad no es un acto, es un hábito.",
+        "💪 Los grandes equipos están hechos de personas que nunca se rinden.",
+        "⭐ La excelencia no es un destino, es un viaje continuo.",
+        "🔊 Escucha más de lo que hablas y ganarás más de lo que imaginas.",
+        "🚀 El cielo no es el límite cuando hay huellas en la luna.",
+        "🏆 El profesionalismo se demuestra en cada llamada.",
+        "💎 La perseverancia vence lo que la alegría no puede.",
+        "🎧 Un cliente satisfecho es la mejor publicidad."
+    ];
+    let index = 0;
+    setInterval(() => {
+        index = (index + 1) % frases.length;
+        const phraseElement = document.getElementById('rotating-phrase');
+        if (phraseElement) {
+            phraseElement.style.opacity = '0';
+            setTimeout(() => {
+                phraseElement.textContent = frases[index];
+                phraseElement.style.opacity = '1';
+            }, 500);
+        }
+    }, 5000);
+}
+document.addEventListener('DOMContentLoaded', rotatePhrase);
+</script>
+"""
+
+# CSS Mejorado - Mucho más llamativo
 CUSTOM_CSS = """
 <style>
 @keyframes fadeIn {
@@ -84,15 +133,124 @@ CUSTOM_CSS = """
 }
 
 @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.8; transform: scale(1.02); }
 }
 
-.block-container {
-    padding-top: 1rem;
-    animation: fadeIn 0.5s ease-out;
+@keyframes gradientShift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
 }
 
+@keyframes starAnimation {
+    0% { opacity: 0; transform: translateY(0px) rotate(0deg); }
+    50% { opacity: 1; transform: translateY(-20px) rotate(180deg); }
+    100% { opacity: 0; transform: translateY(-40px) rotate(360deg); }
+}
+
+@keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+
+.star {
+    position: fixed;
+    color: #FFD700;
+    font-size: 1.2rem;
+    pointer-events: none;
+    animation: starAnimation 3s ease-in-out infinite;
+    z-index: 9999;
+}
+
+/* Login mejorado */
+.login-container {
+    background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+    border-radius: 30px;
+    padding: 40px;
+    box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+    border: 1px solid rgba(255,255,255,0.2);
+    position: relative;
+    overflow: hidden;
+}
+
+.login-container::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(255,255,255,0.1) 1%, transparent 1%);
+    background-size: 50px 50px;
+    animation: shimmer 20s linear infinite;
+}
+
+.login-title {
+    text-align: center;
+    font-size: 2.8rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, #FFD700, #FFA500, #FF6347, #FFD700);
+    background-size: 300% 300%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: gradientShift 3s ease infinite;
+    margin-bottom: 20px;
+}
+
+.login-subtitle {
+    text-align: center;
+    color: #cbd5e1;
+    margin-bottom: 30px;
+    font-style: italic;
+}
+
+.rotating-phrase {
+    text-align: center;
+    background: rgba(255,255,255,0.1);
+    padding: 12px 20px;
+    border-radius: 40px;
+    font-size: 0.95rem;
+    color: #FFD700;
+    transition: opacity 0.5s ease;
+    margin: 20px 0;
+}
+
+/* Botones de campaña mejorados */
+.campaign-button {
+    background: linear-gradient(135deg, #1e293b, #0f172a);
+    border: 2px solid transparent;
+    border-radius: 20px;
+    padding: 25px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin: 10px;
+}
+
+.campaign-button:hover {
+    transform: translateY(-5px);
+    border-color: #667eea;
+    box-shadow: 0 20px 30px -10px rgba(0,0,0,0.4);
+}
+
+.campaign-icon {
+    font-size: 3rem;
+    margin-bottom: 10px;
+}
+
+.campaign-title {
+    font-size: 1.3rem;
+    font-weight: 700;
+    margin: 10px 0;
+}
+
+.campaign-desc {
+    font-size: 0.8rem;
+    color: #94a3b8;
+}
+
+/* Tarjetas de métricas */
 .metric-card {
     background: linear-gradient(135deg, #0f172a, #1e293b);
     border-radius: 20px;
@@ -105,7 +263,7 @@ CUSTOM_CSS = """
     overflow: hidden;
 }
 
-.metric-card::before {
+.metric-card::after {
     content: '';
     position: absolute;
     top: 0;
@@ -116,13 +274,12 @@ CUSTOM_CSS = """
     transition: left 0.5s;
 }
 
-.metric-card:hover::before {
+.metric-card:hover::after {
     left: 100%;
 }
 
 .metric-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 20px 30px -10px rgba(0,0,0,0.4);
+    transform: translateY(-5px) scale(1.02);
 }
 
 .metric-title {
@@ -148,23 +305,30 @@ CUSTOM_CSS = """
     margin-top: 5px;
 }
 
-.green-card {
-    background: linear-gradient(135deg, #064e3b, #059669);
+/* Colores de tarjetas */
+.green-card { background: linear-gradient(135deg, #064e3b, #059669); }
+.red-card { background: linear-gradient(135deg, #7f1d1d, #dc2626); }
+.orange-card { background: linear-gradient(135deg, #7c2d12, #ea580c); }
+.blue-card { background: linear-gradient(135deg, #1e3a8a, #3b82f6); }
+.yellow-card { background: linear-gradient(135deg, #854d0e, #eab308); }
+.purple-card { background: linear-gradient(135deg, #4c1d95, #8b5cf6); }
+
+/* Resultados */
+.result-card {
+    background: linear-gradient(135deg, #1e293b, #0f172a);
+    border-radius: 16px;
+    padding: 20px;
+    margin: 15px 0;
+    border-left: 4px solid #22c55e;
+    animation: fadeIn 0.5s ease-out;
 }
-.red-card {
-    background: linear-gradient(135deg, #7f1d1d, #dc2626);
+
+.result-card-critical {
+    border-left-color: #ef4444;
 }
-.orange-card {
-    background: linear-gradient(135deg, #7c2d12, #ea580c);
-}
-.blue-card {
-    background: linear-gradient(135deg, #1e3a8a, #3b82f6);
-}
-.purple-card {
-    background: linear-gradient(135deg, #4c1d95, #8b5cf6);
-}
-.yellow-card {
-    background: linear-gradient(135deg, #854d0e, #eab308);
+
+.result-card-warning {
+    border-left-color: #eab308;
 }
 
 .update-panel {
@@ -182,7 +346,7 @@ CUSTOM_CSS = """
     font-size: 0.8rem;
     font-weight: 700;
     display: inline-block;
-    box-shadow: 0 2px 8px rgba(220,38,38,0.3);
+    animation: pulse 2s infinite;
 }
 
 .role-badge-supervisor {
@@ -192,21 +356,8 @@ CUSTOM_CSS = """
     font-size: 0.8rem;
     font-weight: 700;
     display: inline-block;
-    box-shadow: 0 2px 8px rgba(59,130,246,0.3);
-}
-
-.fresh-indicator {
-    display: inline-block;
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    margin-right: 8px;
     animation: pulse 2s infinite;
 }
-
-.fresh-green { background-color: #22c55e; box-shadow: 0 0 10px #22c55e; }
-.fresh-yellow { background-color: #eab308; box-shadow: 0 0 10px #eab308; }
-.fresh-red { background-color: #ef4444; box-shadow: 0 0 10px #ef4444; }
 
 .stButton > button {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -216,9 +367,6 @@ CUSTOM_CSS = """
     border-radius: 12px;
     padding: 10px 20px;
     transition: all 0.3s ease;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    font-size: 0.85rem;
 }
 
 .stButton > button:hover {
@@ -226,40 +374,19 @@ CUSTOM_CSS = """
     box-shadow: 0 10px 20px -5px rgba(102, 126, 234, 0.4);
 }
 
-.campaign-card {
-    background: linear-gradient(135deg, #1e293b, #0f172a);
-    border-radius: 16px;
+.dashboard-footer {
+    margin-top: 30px;
     padding: 20px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    border: 2px solid transparent;
     text-align: center;
+    border-top: 1px solid #334155;
+    font-size: 0.8rem;
+    color: #64748b;
 }
 
-.campaign-card:hover {
-    transform: translateY(-3px);
-    border-color: #667eea;
-}
-
-.campaign-card-active {
-    border-color: #22c55e;
-    background: linear-gradient(135deg, #1e3a3a, #0f172a);
-}
-
-.campaign-icon {
-    font-size: 2.5rem;
-    margin-bottom: 10px;
-}
-
-.campaign-title {
-    font-size: 1.2rem;
-    font-weight: 700;
-    margin-bottom: 5px;
-}
-
+/* Tabs mejorados */
 .stTabs [data-baseweb="tab-list"] {
     gap: 8px;
-    background-color: #1e293b;
+    background: linear-gradient(135deg, #1e293b, #0f172a);
     padding: 8px;
     border-radius: 16px;
 }
@@ -275,16 +402,28 @@ CUSTOM_CSS = """
     background-color: #334155;
 }
 
-.dashboard-footer {
-    margin-top: 30px;
-    padding: 20px;
-    text-align: center;
-    border-top: 1px solid #334155;
-    font-size: 0.8rem;
-    color: #64748b;
+/* Dataframe con bordes redondeados */
+.dataframe-container {
+    border-radius: 16px;
+    overflow: hidden;
 }
 </style>
 """
+
+# ============================================================================
+# FUNCIONES DE ANIMACIÓN
+# ============================================================================
+
+def generar_estrellas():
+    estrellas = ""
+    for i in range(40):
+        left = random.randint(0, 100)
+        top = random.randint(0, 100)
+        delay = random.randint(0, 5)
+        duration = random.randint(2, 4)
+        size = random.choice([0.8, 1.0, 1.2, 1.5])
+        estrellas += f'<div class="star" style="left: {left}%; top: {top}%; animation-delay: {delay}s; animation-duration: {duration}s; font-size: {size}rem;">⭐</div>'
+    return estrellas
 
 # ============================================================================
 # UTILIDADES
@@ -412,20 +551,10 @@ def clean_data(df: pd.DataFrame, campaign_name: str) -> pd.DataFrame:
 def add_analysis_columns(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
     
-    # Métricas de contestador
     df["contestador_menor_igual_10s"] = df["es_contestador"] & (df["length_in_sec"] <= 10)
     df["contestador_mayor_10s"] = df["es_contestador"] & (df["length_in_sec"] > 10)
-    
-    # Métricas de NO INTERESADO por rangos
-    df["no_interesado"] = df["es_no_interesado"]
-    
-    # Rango 2-5 minutos (120-300 segundos)
     df["no_interesado_2_5min"] = df["es_no_interesado"] & (df["length_in_sec"] >= 120) & (df["length_in_sec"] < 300)
-    
-    # Mayor a 5 minutos (300+ segundos)
     df["no_interesado_mas_5min"] = df["es_no_interesado"] & (df["length_in_sec"] >= 300)
-    
-    # Mayor a 10 minutos (600+ segundos)
     df["no_interesado_mas_10min"] = df["es_no_interesado"] & (df["length_in_sec"] >= 600)
     
     def clasificar_problema(row):
@@ -443,12 +572,12 @@ def add_analysis_columns(df: pd.DataFrame) -> pd.DataFrame:
             seg = row.get("length_in_sec", 0)
             if seg <= 10:
                 return "✅ Correcto: cortó rápido al detectar contestador"
-            return "⚠️ Problema: contestador >10 segundos"
+            return "⚠️ Problema: contestador >10 segundos - Debe cortar antes"
         if row.get("es_no_interesado", False):
             seg = row.get("length_in_sec", 0)
             if seg >= 600: return "🔴 CRÍTICO: No interesado con MÁS DE 10 MINUTOS - Revisión URGENTE"
-            if seg >= 300: return "🔴 Grave: no interesado >5 minutos"
-            if seg >= 120: return "🟡 Alerta: no interesado >2 minutos"
+            if seg >= 300: return "🔴 Grave: no interesado >5 minutos - Requiere coaching"
+            if seg >= 120: return "🟡 Alerta: no interesado >2 minutos - Mejorar argumentación"
         return "ℹ️ Normal"
     
     df["nivel_problema"] = df.apply(clasificar_problema, axis=1)
@@ -504,32 +633,84 @@ def get_agente_summary(df: pd.DataFrame) -> pd.DataFrame:
     return summary.sort_values("tiempo_total_seg", ascending=False)
 
 
-def export_to_excel(df: pd.DataFrame, campaign: str) -> bytes:
-    output = io.BytesIO()
-    resumen_agente = get_agente_summary(df)
-    problemas = df[df["nivel_problema"].isin(["Problema grave", "Problema grave +10min", "Alerta media"])]
-    
-    with pd.ExcelWriter(output, engine="openpyxl") as writer:
-        resumen_agente.to_excel(writer, sheet_name="Resumen Agente", index=False)
-        problemas.to_excel(writer, sheet_name="Problemas Detectados", index=False)
-        df.to_excel(writer, sheet_name="Detalle Filtrado", index=False)
-    
-    return output.getvalue()
+def mostrar_resultados_filtro(df_filtrado, titulo, color, tipo_filtro):
+    """Muestra los resultados del filtro"""
+    if len(df_filtrado) > 0:
+        st.markdown(f"""
+        <div class="result-card result-card-{color}">
+            <h4>{titulo}</h4>
+            <p><strong>📊 Total encontrados:</strong> {len(df_filtrado)} llamadas</p>
+            <p><strong>⏱️ Tiempo total:</strong> {format_seconds(df_filtrado['length_in_sec'].sum())}</p>
+            <p><strong>👥 Agentes involucrados:</strong> {df_filtrado['user'].nunique()}</p>
+            <p><strong>📈 Promedio por llamada:</strong> {(df_filtrado['length_in_sec'].mean() / 60):.1f} minutos</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        with st.expander(f"📋 Ver detalles de las {len(df_filtrado)} llamadas", expanded=True):
+            columnas_mostrar = ["user", "full_name", "phone_number_dialed", "status_name", "length_in_sec", "minutos_hablados", "comentario_mejora"]
+            columnas_disponibles = [col for col in columnas_mostrar if col in df_filtrado.columns]
+            
+            st.dataframe(
+                df_filtrado[columnas_disponibles],
+                use_container_width=True,
+                hide_index=True,
+                column_config={
+                    "user": "Agente",
+                    "full_name": "Nombre",
+                    "phone_number_dialed": "📞 Teléfono",
+                    "status_name": "Status",
+                    "length_in_sec": "Duración (seg)",
+                    "minutos_hablados": "Minutos",
+                    "comentario_mejora": "Comentario"
+                }
+            )
+        
+        st.subheader("📋 Resumen por Agente")
+        resumen_filtro = df_filtrado.groupby("user").agg(
+            cantidad=("user", "size"),
+            tiempo_total=("length_in_sec", "sum")
+        ).reset_index().sort_values("cantidad", ascending=False)
+        resumen_filtro["tiempo_formateado"] = resumen_filtro["tiempo_total"].apply(format_seconds)
+        st.dataframe(resumen_filtro, use_container_width=True, hide_index=True)
+        
+        if tipo_filtro == "2_5":
+            st.info("💡 **Recomendación:** Revisar argumentación comercial para reducir el tiempo en llamadas de no interesados (2-5 minutos).")
+        elif tipo_filtro == "mas_5":
+            st.warning("⚠️ **Recomendación:** Coaching urgente para mejorar cierre de llamadas sin oportunidad real (>5 minutos).")
+        elif tipo_filtro == "mas_10":
+            st.error("🚨 **REVISIÓN URGENTE:** Estos casos (>10 minutos) requieren atención inmediata de supervisión.")
+    else:
+        st.info(f"ℹ️ No se encontraron llamadas en esta categoría")
 
 
 # ============================================================================
-# LOGIN
+# LOGIN MEJORADO
 # ============================================================================
 
 def login_screen():
-    st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
+    # Inyectar JavaScript para frases rotativas
+    st.markdown(ROTATE_FRASES_JS, unsafe_allow_html=True)
     
-    st.title("🎯 Call Center Analytics Pro")
-    st.markdown("### Sistema de Gestión Profesional")
+    estrellas_html = generar_estrellas()
+    st.markdown(estrellas_html, unsafe_allow_html=True)
+    st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
     
     col1, col2, col3 = st.columns([1, 2, 1])
     
     with col2:
+        st.markdown(f"""
+        <div class="login-container">
+            <div class="login-title">
+                🎯 Analytics pro
+            </div>
+            <div class="login-subtitle">
+                "Evalúa el rendimiento de tu equipo comercial"
+            </div>
+            <div class="rotating-phrase" id="rotating-phrase">
+                {FRASES[0]}
+            </div>
+        """, unsafe_allow_html=True)
+        
         st.markdown("---")
         st.markdown("#### 🔐 Acceso al Sistema")
         
@@ -542,7 +723,7 @@ def login_screen():
         
         password = st.text_input("Contraseña:", type="password")
         
-        if st.button("Ingresar al Dashboard", use_container_width=True):
+        if st.button("✨ Ingresar al Sistema ✨", use_container_width=True):
             expected_password = ROLES_CONFIG[role]["password"]
             if password == expected_password:
                 st.session_state["authenticated"] = True
@@ -553,7 +734,8 @@ def login_screen():
                 st.error("❌ Contraseña incorrecta")
         
         st.markdown("---")
-        st.caption("🔒 Sistema seguro - Acceso restringido")
+        st.caption("🔒 Sistema seguro - Usar con responsabilidad, va estar monitoriado")
+        st.markdown("</div>", unsafe_allow_html=True)
 
 
 # ============================================================================
@@ -566,11 +748,11 @@ def main_dashboard():
     role = st.session_state["role"]
     is_admin = (role == "admin")
     
-    # Header
+    # Header mejorado
     col1, col2, col3 = st.columns([2, 1, 1])
     with col1:
-        st.title("🎯 Call Center Analytics Pro")
-        st.caption(f"Bienvenido, {st.session_state['user']}")
+        st.title("🎯 Analytics Pro")
+        st.caption(f"📊 Evaluando el rendimiento de tu equipo comercial | Bienvenido, {st.session_state['user']}")
     
     with col2:
         if is_admin:
@@ -579,31 +761,55 @@ def main_dashboard():
             st.markdown('<div class="role-badge-supervisor">👁️ SUPERVISOR</div>', unsafe_allow_html=True)
     
     with col3:
-        if st.button("🚪 Cerrar Sesión"):
-            for key in ["authenticated", "role", "user", "selected_campaign"]:
+        if st.button("🚪 Cerrar Sesión", use_container_width=True):
+            for key in ["authenticated", "role", "user", "selected_campaign", "selected_filter"]:
                 if key in st.session_state:
                     del st.session_state[key]
             st.rerun()
     
     st.divider()
     
-    # Selección de campaña
+    # ========================================================================
+    # SELECCIÓN DE CAMPAÑA - MEJORADA Y VISIBLE
+    # ========================================================================
+    
     st.markdown("### 📊 Seleccionar Campaña")
+    st.markdown("Elige la campaña que deseas analizar: Señores(as) Coordinadores seleccionar la campaña que pertenece, el sistema va estar monitoriado.")
     
     col1, col2 = st.columns(2)
     
-    for idx, (campaign, config) in enumerate(CAMPANAS.items()):
-        col = col1 if idx == 0 else col2
-        is_active = st.session_state.get("selected_campaign") == campaign
-        
-        with col:
-            if st.button(
-                f"{config['icon']} {campaign}",
-                use_container_width=True,
-                key=f"campaign_{campaign}"
-            ):
-                st.session_state["selected_campaign"] = campaign
-                st.rerun()
+    # Botones de campaña visibles y atractivos
+    with col1:
+        st.markdown("""
+        <div style="background: linear-gradient(135deg, rgba(249,115,22,0.1), rgba(249,115,22,0.05)); border-radius: 20px; padding: 5px;">
+        """, unsafe_allow_html=True)
+        if st.button("⚡ ENERGÍA", use_container_width=True, key="btn_energia"):
+            st.session_state["selected_campaign"] = "Energía"
+            if "selected_filter" in st.session_state:
+                del st.session_state["selected_filter"]
+            st.rerun()
+        st.markdown("""
+        <div style="text-align: center; padding: 8px;">
+            <small style="color: #f97316;">📊 Análisis de llamadas - Campaña Energia</small>
+        </div>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col2:
+        st.markdown("""
+        <div style="background: linear-gradient(135deg, rgba(59,130,246,0.1), rgba(59,130,246,0.05)); border-radius: 20px; padding: 5px;">
+        """, unsafe_allow_html=True)
+        if st.button("📱 TELEFONÍA", use_container_width=True, key="btn_telefonia"):
+            st.session_state["selected_campaign"] = "Telefonía"
+            if "selected_filter" in st.session_state:
+                del st.session_state["selected_filter"]
+            st.rerun()
+        st.markdown("""
+        <div style="text-align: center; padding: 8px;">
+            <small style="color: #3b82f6;">📊 Análisis de llamadas - Campaña Móvil o Telefonica</small>
+        </div>
+        </div>
+        """, unsafe_allow_html=True)
     
     if "selected_campaign" not in st.session_state:
         st.session_state["selected_campaign"] = "Energía"
@@ -611,7 +817,7 @@ def main_dashboard():
     campaign = st.session_state["selected_campaign"]
     campaign_config = CAMPANAS[campaign]
     
-    st.info(f"{campaign_config['icon']} **{campaign}** - {campaign_config['description']}")
+    st.success(f"{campaign_config['icon']} **Campaña activa: {campaign}** - {campaign_config['description']}")
     st.divider()
     
     # Panel de Admin
@@ -668,11 +874,12 @@ def main_dashboard():
     if not csv_path.exists():
         if is_admin:
             st.warning(f"⚠️ No se encuentra {campaign_config['csv_path']}")
+            st.info("💡 Como administrador, puedes subir el archivo CSV usando el panel de carga de datos arriba.")
         else:
-            st.warning(f"⚠️ Datos de {campaign} no disponibles")
+            st.warning(f"⚠️ Datos de {campaign} no disponibles. Contacta al administrador.")
         return
     
-    with st.spinner(f"Cargando {campaign}..."):
+    with st.spinner(f"Cargando datos de {campaign}..."):
         df_raw = load_csv(csv_path)
         if df_raw is None:
             st.error("Error al cargar datos")
@@ -694,13 +901,13 @@ def main_dashboard():
                     <span class="fresh-indicator fresh-{freshness_color}"></span>
                     <strong>{freshness_status}</strong>
                 </div>
-                <div>📅 {st.session_state['last_update'].strftime('%Y-%m-%d %H:%M:%S')}</div>
+                <div>📅 Última actualización: {st.session_state['last_update'].strftime('%Y-%m-%d %H:%M:%S')}</div>
                 <div>{freshness_detail}</div>
             </div>
         </div>
         """, unsafe_allow_html=True)
     
-    # Filtros
+    # Filtros en sidebar
     with st.sidebar:
         st.header("🔍 Filtros Avanzados")
         
@@ -717,7 +924,7 @@ def main_dashboard():
                 df = df[(df["fecha"] >= rango[0]) & (df["fecha"] <= rango[1])]
         
         agentes = sorted(df["user"].dropna().unique().tolist())
-        agentes_filter = st.multiselect("👤 Agentes", agentes, default=agentes)
+        agentes_filter = st.multiselect("👤 Agentes", agentes, default=agentes[:10] if len(agentes) > 10 else agentes)
         if agentes_filter:
             df = df[df["user"].isin(agentes_filter)]
         
@@ -725,11 +932,6 @@ def main_dashboard():
         status_filter = st.multiselect("📌 Status", statuses, default=[])
         if status_filter:
             df = df[df["status_name"].isin(status_filter)]
-        
-        niveles = ["Todos", "Correcto", "Normal", "Alerta media", "Problema grave", "Problema grave +10min"]
-        nivel_filter = st.selectbox("🚨 Nivel de problema", niveles)
-        if nivel_filter != "Todos":
-            df = df[df["nivel_problema"] == nivel_filter]
     
     if df.empty:
         st.warning("No hay datos con los filtros seleccionados")
@@ -756,7 +958,7 @@ def main_dashboard():
     
     st.divider()
     
-    # Fila 2 - Contestador
+    # Fila 2 - Contestador Automático
     st.subheader("📞 Análisis de Contestador Automático")
     col1, col2 = st.columns(2)
     
@@ -769,14 +971,14 @@ def main_dashboard():
     
     st.divider()
     
-    # Fila 3 - No Interesado (NUEVO)
+    # Fila 3 - No Interesado
     st.subheader("🚫 Análisis de No Interesados por Duración")
     
     col1, col2, col3 = st.columns(3)
     
     with col1:
         metric_card("⚠️ No interesado 2-5 min", metrics['no_interesado_2_5min'], "yellow-card",
-                   subtext="Rango de 2 a 5 minutos - Revisar argumentación")
+                   subtext="Rango de 2 a 5 minutos")
     
     with col2:
         metric_card("🔴 No interesado > 5 min", metrics['no_interesado_mas_5min'], "orange-card",
@@ -788,7 +990,50 @@ def main_dashboard():
     
     st.divider()
     
-    # Tabla por agente
+    # Filtro rápido
+    st.markdown("### 🎯 Filtro Rápido por Tipo de No Interesado")
+    st.markdown("Selecciona una categoría para ver resultados detallados:")
+    
+    df_2_5 = df[df["no_interesado_2_5min"]]
+    df_mas_5 = df[df["no_interesado_mas_5min"]]
+    df_mas_10 = df[df["no_interesado_mas_10min"]]
+    
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        if st.button("⚠️ 2 - 5 minutos", use_container_width=True, key="filter_2_5"):
+            st.session_state["selected_filter"] = "2_5"
+            st.rerun()
+        st.caption(f"Total: {len(df_2_5)} llamadas")
+    
+    with col2:
+        if st.button("🔴 Más de 5 minutos", use_container_width=True, key="filter_5"):
+            st.session_state["selected_filter"] = "mas_5"
+            st.rerun()
+        st.caption(f"Total: {len(df_mas_5)} llamadas")
+    
+    with col3:
+        if st.button("💀 Más de 10 minutos", use_container_width=True, key="filter_10"):
+            st.session_state["selected_filter"] = "mas_10"
+            st.rerun()
+        st.caption(f"Total: {len(df_mas_10)} llamadas")
+    
+    st.divider()
+    
+    # Mostrar resultados del filtro
+    if "selected_filter" in st.session_state:
+        filtro = st.session_state["selected_filter"]
+        
+        if filtro == "2_5":
+            mostrar_resultados_filtro(df_2_5, "⚠️ Llamadas de No Interesados (2-5 minutos)", "warning", "2_5")
+        elif filtro == "mas_5":
+            mostrar_resultados_filtro(df_mas_5, "🔴 Llamadas de No Interesados (Más de 5 minutos)", "critical", "mas_5")
+        elif filtro == "mas_10":
+            mostrar_resultados_filtro(df_mas_10, "💀 CRÍTICO - Llamadas de No Interesados (Más de 10 minutos)", "critical", "mas_10")
+        
+        st.divider()
+    
+    # Tabla de agentes
     st.subheader("👥 Análisis por Agente")
     
     display_cols = [
@@ -820,7 +1065,7 @@ def main_dashboard():
     st.divider()
     
     # Tabs
-    tab1, tab2, tab3 = st.tabs(["📊 Ranking Agentes", "🚨 Problemas Detectados", "📋 Detalle Completo"])
+    tab1, tab2 = st.tabs(["📊 Ranking Agentes", "🚨 Problemas Detectados"])
     
     with tab1:
         fig = px.bar(
@@ -841,34 +1086,32 @@ def main_dashboard():
             st.success("✅ No se detectaron problemas")
         else:
             st.warning(f"⚠️ {len(problemas)} llamadas con problemas")
+            columnas_problemas = ["user", "full_name", "phone_number_dialed", "status_name", "length_in_sec", "minutos_hablados", "nivel_problema", "comentario_mejora"]
+            columnas_disponibles = [col for col in columnas_problemas if col in problemas.columns]
             st.dataframe(
-                problemas[["user", "status_name", "length_in_sec", "minutos_hablados", "nivel_problema", "comentario_mejora"]],
+                problemas[columnas_disponibles],
                 use_container_width=True,
-                hide_index=True
+                hide_index=True,
+                column_config={
+                    "user": "Agente",
+                    "full_name": "Nombre",
+                    "phone_number_dialed": "📞 Teléfono",
+                    "status_name": "Status",
+                    "length_in_sec": "Duración (seg)",
+                    "minutos_hablados": "Minutos",
+                    "nivel_problema": "Nivel",
+                    "comentario_mejora": "Comentario"
+                }
             )
-    
-    with tab3:
-        st.dataframe(df, use_container_width=True, hide_index=True)
-    
-    # Exportar
-    st.divider()
-    excel_data = export_to_excel(df, campaign)
-    st.download_button(
-        label="📥 Descargar Análisis Completo (Excel)",
-        data=excel_data,
-        file_name=f"reporte_{campaign.lower()}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        use_container_width=True
-    )
     
     # Footer
     st.markdown(f"""
     <div class="dashboard-footer">
         📊 <strong>{campaign}</strong> | 
         Última actualización: {st.session_state.get('last_update', datetime.now()).strftime('%Y-%m-%d %H:%M:%S')} | 
-        {metrics['total_llamadas']} llamadas | 
-        {metrics['total_agentes']} agentes | 
-        Rol: {st.session_state['user']}
+        {metrics['total_llamadas']} llamadas analizadas | 
+        {metrics['total_agentes']} agentes activos | 
+        👤 Rol: {st.session_state['user']}
     </div>
     """, unsafe_allow_html=True)
 
