@@ -489,13 +489,22 @@ def guardar_mensaje(mensaje):
         json.dump(mensajes, f, ensure_ascii=False, indent=2)
 
 def enviar_mensaje(remitente, texto, rol):
-    """Envía un mensaje nuevo"""
+    """Envía un mensaje nuevo con hora Perú (UTC-5)"""
+    # Crear zona horaria de Perú (UTC-5)
+    from datetime import timezone, timedelta
+    
+    # Definir zona horaria Perú (UTC-5)
+    zona_peru = timezone(timedelta(hours=-5))
+    
+    # Obtener hora actual con zona Perú
+    hora_peru = datetime.now(zona_peru)
+    
     mensaje = {
         'id': len(cargar_mensajes()) + 1,
         'remitente': remitente,
         'texto': texto,
         'rol': rol,
-        'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+        'timestamp': (datetime.now() - timedelta(hours=5)).strftime('%Y-%m-%d %H:%M:%S'),
         'leido': False
     }
     guardar_mensaje(mensaje)
