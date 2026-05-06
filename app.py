@@ -1,6 +1,6 @@
 """
 Dashboard Call Center Pro - Versión Definitiva
-Con: Botones visibles, frases rotativas cada 5s, interfaz mejorada
+Con: Botones visibles, frases rotativas cada 5s (CORREGIDO), interfaz mejorada, CHAT con notificaciones y sonido
 """
 
 import streamlit as st
@@ -16,6 +16,9 @@ from functools import lru_cache
 import io
 import random
 import time
+import json
+import os
+import base64
 
 # ============================================================================
 # CONFIGURACIÓN INICIAL
@@ -27,6 +30,9 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
+
+# Archivo para guardar mensajes
+MENSAJES_FILE = "mensajes.json"
 
 # Configuración de campañas
 CAMPANAS = {
@@ -91,7 +97,22 @@ FRASES = [
     "🎧 Un cliente satisfecho es la mejor publicidad."
 ]
 
-# JavaScript para rotar frases cada 5 segundos
+# Sonido de notificación (base64)
+NOTIFICATION_SOUND = """
+<audio id="notificationSound" preload="auto">
+    <source src="data:audio/wav;base64,U3RlYW0gU291bmQ=" type="audio/wav">
+</audio>
+<script>
+function playNotification() {
+    const audio = document.getElementById('notificationSound');
+    if(audio) {
+        audio.play().catch(e => console.log('Audio play failed:', e));
+    }
+}
+</script>
+"""
+
+# JavaScript para rotar frases cada 5 segundos (CORREGIDO)
 ROTATE_FRASES_JS = """
 <script>
 function rotatePhrase() {
@@ -108,23 +129,28 @@ function rotatePhrase() {
         "🎧 Un cliente satisfecho es la mejor publicidad."
     ];
     let index = 0;
-    setInterval(() => {
-        index = (index + 1) % frases.length;
-        const phraseElement = document.getElementById('rotating-phrase');
-        if (phraseElement) {
+    const phraseElement = document.getElementById('rotating-phrase');
+    if (phraseElement) {
+        setInterval(() => {
+            index = (index + 1) % frases.length;
+            phraseElement.style.transition = 'opacity 0.5s ease';
             phraseElement.style.opacity = '0';
             setTimeout(() => {
                 phraseElement.textContent = frases[index];
                 phraseElement.style.opacity = '1';
             }, 500);
-        }
-    }, 5000);
+        }, 5000);
+    }
 }
-document.addEventListener('DOMContentLoaded', rotatePhrase);
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', rotatePhrase);
+} else {
+    rotatePhrase();
+}
 </script>
 """
 
-# CSS Mejorado - Mucho más llamativo
+# CSS Mejorado
 CUSTOM_CSS = """
 <style>
 @keyframes fadeIn {
@@ -154,6 +180,11 @@ CUSTOM_CSS = """
     100% { transform: translateX(100%); }
 }
 
+@keyframes notificationBadge {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.3); background-color: #ef4444; }
+}
+
 .star {
     position: fixed;
     color: #FFD700;
@@ -163,7 +194,6 @@ CUSTOM_CSS = """
     z-index: 9999;
 }
 
-/* Login mejorado */
 .login-container {
     background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
     border-radius: 30px;
@@ -216,41 +246,6 @@ CUSTOM_CSS = """
     margin: 20px 0;
 }
 
-/* Botones de campaña mejorados */
-.campaign-button {
-    background: linear-gradient(135deg, #1e293b, #0f172a);
-    border: 2px solid transparent;
-    border-radius: 20px;
-    padding: 25px;
-    text-align: center;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    margin: 10px;
-}
-
-.campaign-button:hover {
-    transform: translateY(-5px);
-    border-color: #667eea;
-    box-shadow: 0 20px 30px -10px rgba(0,0,0,0.4);
-}
-
-.campaign-icon {
-    font-size: 3rem;
-    margin-bottom: 10px;
-}
-
-.campaign-title {
-    font-size: 1.3rem;
-    font-weight: 700;
-    margin: 10px 0;
-}
-
-.campaign-desc {
-    font-size: 0.8rem;
-    color: #94a3b8;
-}
-
-/* Tarjetas de métricas */
 .metric-card {
     background: linear-gradient(135deg, #0f172a, #1e293b);
     border-radius: 20px;
@@ -305,7 +300,6 @@ CUSTOM_CSS = """
     margin-top: 5px;
 }
 
-/* Colores de tarjetas */
 .green-card { background: linear-gradient(135deg, #064e3b, #059669); }
 .red-card { background: linear-gradient(135deg, #7f1d1d, #dc2626); }
 .orange-card { background: linear-gradient(135deg, #7c2d12, #ea580c); }
@@ -313,7 +307,6 @@ CUSTOM_CSS = """
 .yellow-card { background: linear-gradient(135deg, #854d0e, #eab308); }
 .purple-card { background: linear-gradient(135deg, #4c1d95, #8b5cf6); }
 
-/* Resultados */
 .result-card {
     background: linear-gradient(135deg, #1e293b, #0f172a);
     border-radius: 16px;
@@ -359,6 +352,77 @@ CUSTOM_CSS = """
     animation: pulse 2s infinite;
 }
 
+/* Estilos mejorados para el chat */
+.chat-container {
+    background: linear-gradient(135deg, #1e293b, #0f172a);
+    border-radius: 20px;
+    padding: 20px;
+    margin-bottom: 20px;
+    border: 1px solid rgba(255,255,255,0.1);
+}
+
+.message-bubble {
+    background: #0f172a;
+    border-radius: 15px;
+    padding: 12px 16px;
+    margin-bottom: 12px;
+    border-left: 3px solid;
+}
+
+.message-admin {
+    border-left-color: #dc2626;
+    background: linear-gradient(135deg, #1e293b, #2d1a1a);
+}
+
+.message-supervisor {
+    border-left-color: #3b82f6;
+}
+
+.message-time {
+    font-size: 0.65rem;
+    color: #64748b;
+    margin-bottom: 5px;
+}
+
+.message-sender {
+    font-weight: 700;
+    font-size: 0.8rem;
+    margin-bottom: 5px;
+}
+
+.message-text {
+    font-size: 0.9rem;
+    color: #e2e8f0;
+}
+
+/* Notificación mejorada estilo WhatsApp */
+.notification-whatsapp {
+    background: linear-gradient(135deg, #dc2626, #ef4444);
+    color: white;
+    border-radius: 30px;
+    padding: 8px 18px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    animation: notificationBadge 0.5s ease;
+    box-shadow: 0 4px 12px rgba(220,38,38,0.4);
+    margin-left: 10px;
+}
+
+.notification-whatsapp::before {
+    content: "💬";
+    font-size: 1rem;
+}
+
+.chat-input-area {
+    background: #0f172a;
+    border-radius: 12px;
+    padding: 15px;
+    margin-top: 15px;
+}
+
 .stButton > button {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
@@ -383,7 +447,6 @@ CUSTOM_CSS = """
     color: #64748b;
 }
 
-/* Tabs mejorados */
 .stTabs [data-baseweb="tab-list"] {
     gap: 8px;
     background: linear-gradient(135deg, #1e293b, #0f172a);
@@ -401,14 +464,174 @@ CUSTOM_CSS = """
 .stTabs [data-baseweb="tab"]:hover {
     background-color: #334155;
 }
-
-/* Dataframe con bordes redondeados */
-.dataframe-container {
-    border-radius: 16px;
-    overflow: hidden;
-}
 </style>
 """
+
+# ============================================================================
+# FUNCIONES DE MENSAJERÍA
+# ============================================================================
+
+def cargar_mensajes():
+    """Carga los mensajes guardados del archivo JSON"""
+    if os.path.exists(MENSAJES_FILE):
+        try:
+            with open(MENSAJES_FILE, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except:
+            return []
+    return []
+
+def guardar_mensaje(mensaje):
+    """Guarda un nuevo mensaje"""
+    mensajes = cargar_mensajes()
+    mensajes.append(mensaje)
+    with open(MENSAJES_FILE, 'w', encoding='utf-8') as f:
+        json.dump(mensajes, f, ensure_ascii=False, indent=2)
+
+def enviar_mensaje(remitente, texto, rol):
+    """Envía un mensaje nuevo"""
+    mensaje = {
+        'id': len(cargar_mensajes()) + 1,
+        'remitente': remitente,
+        'texto': texto,
+        'rol': rol,
+        'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+        'leido': False
+    }
+    guardar_mensaje(mensaje)
+
+def marcar_como_leidos(rol_usuario):
+    """Marca todos los mensajes para el usuario actual como leídos"""
+    mensajes = cargar_mensajes()
+    for msg in mensajes:
+        if msg['rol'] != rol_usuario:
+            msg['leido'] = True
+    with open(MENSAJES_FILE, 'w', encoding='utf-8') as f:
+        json.dump(mensajes, f, ensure_ascii=False, indent=2)
+
+def contar_no_leidos(rol_usuario):
+    """Cuenta mensajes no leídos para el usuario actual"""
+    mensajes = cargar_mensajes()
+    no_leidos = 0
+    for msg in mensajes:
+        if msg['rol'] != rol_usuario and not msg.get('leido', False):
+            no_leidos += 1
+    return no_leidos
+
+def obtener_texto_notificacion(rol_usuario):
+    """Obtiene el texto de notificación estilo WhatsApp"""
+    no_leidos = contar_no_leidos(rol_usuario)
+    if no_leidos == 0:
+        return None
+    elif no_leidos == 1:
+        return "Tienes 1 mensaje nuevo"
+    else:
+        return f"Tienes {no_leidos} mensajes nuevos"
+
+def mostrar_chat(rol_usuario, nombre_usuario):
+    """Muestra el chat completo"""
+    
+    st.markdown("""
+    <div class="chat-container">
+        <h3>💬 Centro de Mensajes</h3>
+        <p style="color: #94a3b8; font-size: 0.8rem;">Comunícate directamente con el administrador</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Mostrar mensajes existentes
+    mensajes = cargar_mensajes()
+    
+    if mensajes:
+        for msg in reversed(mensajes[-15:]):
+            clase = "message-admin" if msg['rol'] == 'admin' else "message-supervisor"
+            icono = "👑" if msg['rol'] == 'admin' else "👁️"
+            st.markdown(f"""
+            <div class="message-bubble {clase}">
+                <div class="message-time">🕐 {msg['timestamp']}</div>
+                <div class="message-sender">{icono} <strong>{msg['remitente']}</strong> ({'Administrador' if msg['rol'] == 'admin' else 'Supervisor'})</div>
+                <div class="message-text">{msg['texto']}</div>
+            </div>
+            """, unsafe_allow_html=True)
+    else:
+        st.info("💬 No hay mensajes aún. ¡Envía el primero!")
+    
+    st.markdown("---")
+    
+    # Botones de acción rápida para supervisor
+    if rol_usuario == 'supervisor':
+        st.markdown("#### ⚡ Acciones rápidas")
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("📢 Solicitar actualización", use_container_width=True):
+                enviar_mensaje(nombre_usuario, "📢 Solicito actualización del reporte, por favor.", rol_usuario)
+                st.success("✅ Solicitud enviada")
+                time.sleep(0.5)
+                st.rerun()
+        with col2:
+            if st.button("⚠️ Reportar problema", use_container_width=True):
+                enviar_mensaje(nombre_usuario, "⚠️ Reporto un problema con el dashboard, por favor revisar.", rol_usuario)
+                st.success("✅ Reporte enviado")
+                time.sleep(0.5)
+                st.rerun()
+        st.markdown("---")
+    
+    # Área para escribir mensaje
+    st.markdown("#### ✏️ Escribir mensaje")
+    
+    if rol_usuario == 'admin':
+        placeholder = "Escribe tu respuesta como administrador..."
+    else:
+        placeholder = "Escribe tu mensaje para el administrador..."
+    
+    mensaje_texto = st.text_area("Mensaje:", placeholder=placeholder, height=80)
+    
+    col1, col2, col3 = st.columns([1, 1, 1])
+    with col2:
+        if st.button("📨 Enviar mensaje", use_container_width=True):
+            if mensaje_texto.strip():
+                enviar_mensaje(nombre_usuario, mensaje_texto, rol_usuario)
+                st.success("✅ Mensaje enviado")
+                time.sleep(0.5)
+                st.rerun()
+            else:
+                st.warning("⚠️ Escribe un mensaje primero")
+    
+    # Botones de respuesta rápida para admin
+    if rol_usuario == 'admin':
+        st.markdown("---")
+        st.markdown("#### ⚡ Respuestas rápidas")
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            if st.button("✅ Reporte actualizado", use_container_width=True):
+                enviar_mensaje(nombre_usuario, "✅ El reporte ya está actualizado con los últimos datos.", 'admin')
+                st.success("✅ Respuesta enviada")
+                time.sleep(0.5)
+                st.rerun()
+        with col2:
+            if st.button("🔄 Actualizando...", use_container_width=True):
+                enviar_mensaje(nombre_usuario, "🔄 Estamos actualizando el reporte, estará listo en breve.", 'admin')
+                st.success("✅ Respuesta enviada")
+                time.sleep(0.5)
+                st.rerun()
+        with col3:
+            if st.button("📊 Nuevos datos", use_container_width=True):
+                enviar_mensaje(nombre_usuario, "📊 Se han cargado nuevos datos al sistema.", 'admin')
+                st.success("✅ Respuesta enviada")
+                time.sleep(0.5)
+                st.rerun()
+        with col4:
+            if st.button("🔧 Revisando", use_container_width=True):
+                enviar_mensaje(nombre_usuario, "🔧 Estamos revisando el problema reportado.", 'admin')
+                st.success("✅ Respuesta enviada")
+                time.sleep(0.5)
+                st.rerun()
+    
+    # Botón para marcar como leídos
+    if st.button("✅ Marcar todos como leídos", use_container_width=True):
+        marcar_como_leidos(rol_usuario)
+        st.success("Mensajes marcados como leídos")
+        time.sleep(0.5)
+        st.rerun()
 
 # ============================================================================
 # FUNCIONES DE ANIMACIÓN
@@ -690,6 +913,7 @@ def mostrar_resultados_filtro(df_filtrado, titulo, color, tipo_filtro):
 def login_screen():
     # Inyectar JavaScript para frases rotativas
     st.markdown(ROTATE_FRASES_JS, unsafe_allow_html=True)
+    st.markdown(NOTIFICATION_SOUND, unsafe_allow_html=True)
     
     estrellas_html = generar_estrellas()
     st.markdown(estrellas_html, unsafe_allow_html=True)
@@ -744,12 +968,14 @@ def login_screen():
 
 def main_dashboard():
     st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
+    st.markdown(NOTIFICATION_SOUND, unsafe_allow_html=True)
     
     role = st.session_state["role"]
     is_admin = (role == "admin")
+    nombre_usuario = st.session_state["user"]
     
-    # Header mejorado
-    col1, col2, col3 = st.columns([2, 1, 1])
+    # Header mejorado con notificación estilo WhatsApp
+    col1, col2, col3, col4 = st.columns([2, 1, 1, 1])
     with col1:
         st.title("🎯 Analytics Pro")
         st.caption(f"📊 Evaluando el rendimiento de tu equipo comercial | Bienvenido, {st.session_state['user']}")
@@ -761,16 +987,35 @@ def main_dashboard():
             st.markdown('<div class="role-badge-supervisor">👁️ SUPERVISOR</div>', unsafe_allow_html=True)
     
     with col3:
+        # Notificación estilo WhatsApp
+        texto_notif = obtener_texto_notificacion(role)
+        if texto_notif:
+            st.markdown(f'<span class="notification-whatsapp">{texto_notif}</span>', unsafe_allow_html=True)
+            # Reproducir sonido usando JavaScript
+            st.markdown('<script>playNotification();</script>', unsafe_allow_html=True)
+        
+        if st.button("💬 Chat", use_container_width=True):
+            st.session_state["show_chat"] = not st.session_state.get("show_chat", False)
+            if contar_no_leidos(role) > 0:
+                marcar_como_leidos(role)
+            st.rerun()
+    
+    with col4:
         if st.button("🚪 Cerrar Sesión", use_container_width=True):
-            for key in ["authenticated", "role", "user", "selected_campaign", "selected_filter"]:
+            for key in ["authenticated", "role", "user", "selected_campaign", "selected_filter", "show_chat"]:
                 if key in st.session_state:
                     del st.session_state[key]
             st.rerun()
     
     st.divider()
     
+    # Mostrar chat si está activo
+    if st.session_state.get("show_chat", False):
+        mostrar_chat(role, nombre_usuario)
+        st.divider()
+    
     # ========================================================================
-    # SELECCIÓN DE CAMPAÑA - MEJORADA Y VISIBLE
+    # SELECCIÓN DE CAMPAÑA
     # ========================================================================
     
     st.markdown("### 📊 Seleccionar Campaña")
@@ -778,7 +1023,6 @@ def main_dashboard():
     
     col1, col2 = st.columns(2)
     
-    # Botones de campaña visibles y atractivos
     with col1:
         st.markdown("""
         <div style="background: linear-gradient(135deg, rgba(249,115,22,0.1), rgba(249,115,22,0.05)); border-radius: 20px; padding: 5px;">
@@ -839,6 +1083,7 @@ def main_dashboard():
             if st.button("🔄 ACTUALIZAR AHORA", use_container_width=True):
                 st.cache_data.clear()
                 st.session_state["last_update"] = datetime.now()
+                enviar_mensaje(nombre_usuario, "✅ Se ha actualizado el reporte con nuevos datos.", 'admin')
                 st.rerun()
         
         with col3:
@@ -856,6 +1101,7 @@ def main_dashboard():
                 with open("REPORTE_ENERGIA.csv", "wb") as f:
                     f.write(uploaded_energia.getbuffer())
                 st.success("✅ Energía actualizado")
+                enviar_mensaje(nombre_usuario, "📊 Se ha actualizado el reporte de ENERGÍA.", 'admin')
                 st.cache_data.clear()
         
         with col2:
@@ -864,6 +1110,7 @@ def main_dashboard():
                 with open("REPORTE_TELEFONIA.csv", "wb") as f:
                     f.write(uploaded_telefonia.getbuffer())
                 st.success("✅ Telefonía actualizado")
+                enviar_mensaje(nombre_usuario, "📊 Se ha actualizado el reporte de TELEFONÍA.", 'admin')
                 st.cache_data.clear()
         
         st.divider()
@@ -877,6 +1124,11 @@ def main_dashboard():
             st.info("💡 Como administrador, puedes subir el archivo CSV usando el panel de carga de datos arriba.")
         else:
             st.warning(f"⚠️ Datos de {campaign} no disponibles. Contacta al administrador.")
+            if st.button("💬 Solicitar actualización al administrador"):
+                enviar_mensaje(nombre_usuario, f"📢 Solicito actualización del reporte de {campaign}, por favor.", role)
+                st.success("✅ Solicitud enviada")
+                st.session_state["show_chat"] = True
+                st.rerun()
         return
     
     with st.spinner(f"Cargando datos de {campaign}..."):

@@ -1,0 +1,66 @@
+[
+  {
+    "id": 1,
+    "remitente": "Supervisor",
+    "texto": "📢 Solicito actualización del reporte, por favor.",
+    "rol": "supervisor",
+    "timestamp": "2026-05-06 07:55:45",
+    "leido": true
+  },
+  {
+    "id": 2,
+    "remitente": "Administrador",
+    "texto": "✅ El reporte ya está actualizado con los últimos datos. Por favor, recarga la página.",
+    "rol": "admin",
+    "timestamp": "2026-05-06 07:56:42",
+    "leido": true
+  },
+  {
+    "id": 3,
+    "remitente": "Supervisor",
+    "texto": "📢 Solicito actualización del reporte de Energía, por favor.",
+    "rol": "supervisor",
+    "timestamp": "2026-05-06 07:57:06",
+    "leido": true
+  },
+  {
+    "id": 4,
+    "remitente": "Administrador",
+    "texto": "ya esta actualizado el reporte, ",
+    "rol": "admin",
+    "timestamp": "2026-05-06 07:58:52",
+    "leido": true
+  },
+  {
+    "id": 5,
+    "remitente": "Administrador",
+    "texto": "✅ El reporte ya está actualizado con los últimos datos.",
+    "rol": "admin",
+    "timestamp": "2026-05-06 08:13:19",
+    "leido": true
+  },
+  {
+    "id": 6,
+    "remitente": "Administrador",
+    "texto": "hola",
+    "rol": "admin",
+    "timestamp": "2026-05-06 08:13:44",
+    "leido": true
+  },
+  {
+    "id": 7,
+    "remitente": "Administrador",
+    "texto": "hola",
+    "rol": "admin",
+    "timestamp": "2026-05-06 08:13:48",
+    "leido": true
+  },
+  {
+    "id": 8,
+    "remitente": "Administrador",
+    "texto": "✅ El reporte ya está actualizado con los últimos datos.",
+    "rol": "admin",
+    "timestamp": "2026-05-06 08:14:18",
+    "leido": true
+  }
+]
